@@ -52,6 +52,8 @@ const (
 	DummyVMPrefixName             = "vsphere-k8s"
 	MacOuiVC                      = "00:50:56"
 	MacOuiEsx                     = "00:0c:29"
+	MacOuiEsx1                    = "00:1c:14"
+	MacOuiEsx2                    = "00:05:69"
 	CleanUpDummyVMRoutineInterval = 5
 )
 
@@ -521,9 +523,10 @@ func getLocalIP() ([]v1.NodeAddress, error) {
 				if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 					if ipnet.IP.To4() != nil {
 						// Filter external IP by MAC address OUIs from vCenter and from ESX
-						var addressType v1.NodeAddressType
 						if strings.HasPrefix(i.HardwareAddr.String(), MacOuiVC) ||
-							strings.HasPrefix(i.HardwareAddr.String(), MacOuiEsx) {
+							strings.HasPrefix(i.HardwareAddr.String(), MacOuiEsx) ||
+							strings.HasPrefix(i.HardwareAddr.String(), MacOuiEsx1) ||
+							strings.HasPrefix(i.HardwareAddr.String(), MacOuiEsx2) {
 							v1helper.AddToNodeAddresses(&addrs,
 								v1.NodeAddress{
 									Type:    v1.NodeExternalIP,
@@ -534,8 +537,10 @@ func getLocalIP() ([]v1.NodeAddress, error) {
 									Address: ipnet.IP.String(),
 								},
 							)
+							glog.Infof("Found VMware IP address %v.", ipnet.IP.String())
+						} else {
+							glog.V(4).Infof("Found a non-VMware IP address %v.", ipnet.IP.String())
 						}
-						glog.V(4).Infof("Find local IP address %v and set type to %v", ipnet.IP.String(), addressType)
 					}
 				}
 			}
